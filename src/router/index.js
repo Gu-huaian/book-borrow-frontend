@@ -10,9 +10,15 @@ const routes = [
   {
     path: '/',
     component: () => import('../components/Layout.vue'),
-    redirect: '/books',
+    redirect: '/dashboard',
     meta: { requiresAuth: true },
     children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('../views/Dashboard.vue'),
+        meta: { title: '首页', requiresAuth: true },
+      },
       {
         path: 'books',
         name: 'BookList',
@@ -24,6 +30,24 @@ const routes = [
         name: 'BookForm',
         component: () => import('../views/BookForm.vue'),
         meta: { title: '新增图书', requiresAuth: true },
+      },
+      {
+        path: 'borrow/new',
+        name: 'BorrowRegister',
+        component: () => import('../views/BorrowRegister.vue'),
+        meta: { title: '新增借阅', requiresAuth: true },
+      },
+      {
+        path: 'repair/new',
+        name: 'RepairForm',
+        component: () => import('../views/RepairForm.vue'),
+        meta: { title: '新增维修', requiresAuth: true },
+      },
+      {
+        path: 'readers',
+        name: 'ReaderManage',
+        component: () => import('../views/ReaderManage.vue'),
+        meta: { title: '借阅人管理', requiresAuth: true },
       },
       {
         path: 'books/:id',
@@ -60,13 +84,17 @@ const router = createRouter({
 })
 
 // 路由守卫：根据 requiresAuth 做登录校验
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('library_token')
+// 注意：Pinia 必须在 app.use(pinia) 挂载后才能使用，
+// main.js 里 pinia 在 router 之前挂载，所以这里可以安全调用
+import { useUserStore } from '@/stores/user'
 
-  if (to.meta.requiresAuth && !token) {
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore()
+
+  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next({ path: '/login', query: { redirect: to.fullPath } })
-  } else if (to.path === '/login' && token) {
-    next('/books')
+  } else if (to.path === '/login' && userStore.isLoggedIn) {
+    next('/dashboard')
   } else {
     next()
   }

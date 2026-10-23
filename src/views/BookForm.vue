@@ -3,8 +3,10 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Check, Refresh } from '@element-plus/icons-vue'
+import { useBookStore } from '@/stores/book'
 
 const router = useRouter()
+const bookStore = useBookStore()
 
 const form = reactive({
   title: '',
@@ -32,10 +34,11 @@ const handleSubmit = async () => {
   await formRef.value.validate()
   submitting.value = true
   setTimeout(() => {
+    bookStore.addBook({ ...form })
     submitting.value = false
     ElMessage.success('新增图书成功')
     router.push('/books')
-  }, 500)
+  }, 400)
 }
 
 const handleReset = () => formRef.value.resetFields()

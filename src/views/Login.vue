@@ -2,8 +2,10 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const form = reactive({ username: '', password: '' })
 
@@ -19,7 +21,8 @@ const handleLogin = async () => {
   await loginFormRef.value.validate()
   loading.value = true
   setTimeout(() => {
-    localStorage.setItem('library_token', 'mock_token_' + Date.now())
+    // 调用 store 的 login 方法（内部已处理 localStorage 持久化）
+    userStore.login(form.username)
     ElMessage.success('登录成功')
     loading.value = false
     router.push('/books')

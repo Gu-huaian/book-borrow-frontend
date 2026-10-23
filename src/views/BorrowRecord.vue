@@ -1,26 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
+import { useBorrowStore } from '@/stores/borrow'
 
-const records = ref([])
-const loading = ref(true)
+const borrowStore = useBorrowStore()
+
+const records = computed(() => borrowStore.records)
 
 const statusType = {
   '借阅中': 'warning',
   '已归还': 'success',
   '已逾期': 'danger',
 }
-
-onMounted(() => {
-  setTimeout(() => {
-    records.value = [
-      { id: 1, bookTitle: '红楼梦', borrowDate: '2026-10-01', dueDate: '2026-11-01', status: '借阅中' },
-      { id: 2, bookTitle: '三体', borrowDate: '2026-09-15', dueDate: '2026-10-15', status: '已归还' },
-      { id: 3, bookTitle: '活着', borrowDate: '2026-10-10', dueDate: '2026-11-10', status: '借阅中' },
-      { id: 4, bookTitle: '百年孤独', borrowDate: '2026-08-01', dueDate: '2026-09-01', status: '已逾期' },
-    ]
-    loading.value = false
-  }, 400)
-})
 </script>
 
 <template>
@@ -32,15 +22,25 @@ onMounted(() => {
       </div>
     </template>
 
-    <el-table :data="records" stripe border v-loading="loading" style="width: 100%">
+    <el-table :data="records" stripe border style="width: 100%">
       <el-table-column prop="id" label="序号" width="70" align="center" />
-      <el-table-column prop="bookTitle" label="书名" min-width="160">
+      <el-table-column prop="bookTitle" label="书名" min-width="130" />
+      <el-table-column prop="isbn" label="ISBN" width="170" align="center">
         <template #default="{ row }">
-          <span class="book-name">{{ row.bookTitle }}</span>
+          <span class="isbn-text">{{ row.isbn || '-' }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="borrowDate" label="借出日期" width="140" align="center" />
-      <el-table-column prop="dueDate" label="应还日期" width="140" align="center" />
+      <el-table-column prop="borrower" label="借阅人" width="110" align="center">
+        <template #default="{ row }">
+          <div class="reader-cell">
+            <span class="reader-name">{{ row.borrower }}</span>
+            <span class="reader-no">{{ row.borrowerNo || '-' }}</span>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="borrowNo" label="外借单号" width="100" align="center" />
+      <el-table-column prop="borrowDate" label="借出日期" width="120" align="center" />
+      <el-table-column prop="dueDate" label="应还日期" width="120" align="center" />
       <el-table-column prop="status" label="状态" width="120" align="center">
         <template #default="{ row }">
           <el-tag :type="statusType[row.status] || 'info'" effect="light" round>
@@ -67,8 +67,20 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-tertiary);
 }
-.book-name {
-  font-weight: 500;
-  color: var(--text-primary);
+.isbn-text {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.reader-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.4;
+}
+.reader-no {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 </style>

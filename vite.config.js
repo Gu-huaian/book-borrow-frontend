@@ -1,17 +1,17 @@
-import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import VueDevTools from 'vite-plugin-vue-devtools' // 1. 引入插件
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-  server: {
-    proxy: {
-      // 把 /api 开头的请求转发到 json-server 模拟后端，解决跨域
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-    },
+  // 配置 @ 指向 src，让 `import ... from '@/xxx'` 这种路径可用
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
   },
+  plugins: [
+    vue(),
+    VueDevTools() // 2. 加上这一行
+  ]
 })
