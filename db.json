@@ -1,0 +1,18 @@
+{
+  "books": [
+    {
+      "id": 1,
+      "title": "红楼梦",
+      "author": "曹雪芹",
+      "category": "古典文学",
+      "year": 2008
+    },
+    {
+      "id": 2,
+      "title": "三体",
+      "author": "刘慈欣",
+      "category": "科幻小说",
+      "year": 2008
+    }
+  ]
+}

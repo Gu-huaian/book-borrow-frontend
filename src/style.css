@@ -1,0 +1,172 @@
+/* ============================================================
+   商务后台管理系统 — 全局主题 & Element Plus 样式覆盖
+   ============================================================ */
+
+:root {
+  /* 品牌主色：沉稳商务深蓝（覆盖 Element Plus 默认亮蓝） */
+  --el-color-primary: #1e40af;
+  --el-color-primary-light-3: #3b5fd4;
+  --el-color-primary-light-5: #5b7be0;
+  --el-color-primary-light-7: #8b9de9;
+  --el-color-primary-light-8: #a5b4ef;
+  --el-color-primary-light-9: #dbe3fb;
+  --el-color-primary-dark-2: #152d7a;
+
+  /* 语义色微调 */
+  --el-color-success: #059669;
+  --el-color-warning: #d97706;
+  --el-color-danger: #dc2626;
+  --el-color-info: #64748b;
+
+  /* 文字颜色（Tailwind slate 色系，商务感） */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+
+  /* 背景色 */
+  --bg-page: #f4f6f9;
+  --bg-card: #ffffff;
+  --bg-table-header: #f8fafc;
+  --bg-sidebar: #0f172a;
+  --bg-sidebar-sub: #1e293b;
+
+  /* 阴影（极其柔和） */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-header: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* 圆角 */
+  --radius-card: 8px;
+  --radius-btn: 6px;
+  --radius-input: 6px;
+
+  /* 字体 */
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   基础重置
+   ============================================================ */
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   Element Plus 全局覆盖
+   ============================================================ */
+
+/* 卡片：圆角 + 柔和阴影 + 无边框 */
+.el-card {
+  border-radius: var(--radius-card) !important;
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+  transition: box-shadow 0.25s ease;
+}
+.el-card:hover {
+  box-shadow: var(--shadow-card-hover) !important;
+}
+.el-card__header {
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 18px 24px !important;
+}
+.el-card__body {
+  padding: 24px !important;
+}
+
+/* 按钮：统一圆角 */
+.el-button {
+  border-radius: var(--radius-btn) !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.el-button--primary {
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  --el-button-hover-border-color: var(--el-color-primary-light-3);
+}
+
+/* 输入框统一圆角 */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: var(--radius-input) !important;
+}
+
+/* 表格：表头灰底加粗居中 */
+.el-table {
+  --el-table-header-bg-color: var(--bg-table-header) !important;
+  --el-table-header-text-color: var(--text-primary) !important;
+  --el-table-border-color: #e2e8f0 !important;
+  --el-table-row-hover-bg-color: #f8fafc !important;
+  border-radius: var(--radius-card) !important;
+  overflow: hidden;
+}
+.el-table th.el-table__cell {
+  background: var(--bg-table-header) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--text-primary) !important;
+  text-align: center !important;
+}
+.el-table td.el-table__cell {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* el-descriptions 表头灰底 */
+.el-descriptions {
+  --el-descriptions-table-border: #e2e8f0;
+}
+.el-descriptions__label {
+  background: var(--bg-table-header) !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  width: 120px !important;
+}
+
+/* 表单 label 颜色 */
+.el-form-item__label {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+}
+
+/* 分页组件 */
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+}
+
+/* tag 效果调柔 */
+.el-tag {
+  border-radius: 4px !important;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
