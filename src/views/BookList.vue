@@ -1,21 +1,31 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { useBookStore } from '@/stores/book'
+import { Plus, Check } from '@element-plus/icons-vue'
+import { getBooks, addBook, updateBook, deleteBook } from '@/api/books'
+import request from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
-const bookStore = useBookStore()
+
+// ===== 列表数据（来自后端分页接口） =====
+const books = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = 2 // 与 mock 固定分页一致
+
+const loadBooks = async () => {
+  const res = await getBooks(page.value) // 返回 { code, data: { list, total } }
+  books.value = res.data.list || []
+  total.value = res.data.total || 0
+}
+onMounted(loadBooks)
 
 // 状态 Tab 选项（'' 表示全部）
 const statusTabs = ['', '在架', '借出', '维修中', '逾期']
 
-// 全部书
-const allBooks = computed(() => bookStore.books)
-
-// 当前激活的筛选状态（从 URL query 读，这样统计卡片跳转能自动选中对应 Tab）
+// 当前激活筛选状态（从 URL query 读）
 const activeStatus = computed({
   get: () => route.query.status || '',
   set: (val) => {
@@ -24,16 +34,77 @@ const activeStatus = computed({
   },
 })
 
-// 根据筛选状态过滤书目
-const books = computed(() => {
+// 根据筛选状态过滤当前页
+const filteredBooks = computed(() => {
   const status = route.query.status
-  if (!status) return allBooks.value
-  return allBooks.value.filter((b) => b.status === status)
+  if (!status) return books.value
+  return books.value.filter((b) => b.status === status)
 })
 
-const goAdd = () => router.push('/books/new')
 const goDetail = (row) => router.push(`/books/${row.id}`)
 
+// ===== 新增/编辑弹窗 =====
+const dialogVisible = ref(false)
+const editingId = ref(null) // 为空表示新增
+const formRef = ref()
+const submitting = ref(false)
+
+const form = reactive({ title: '', author: '', category: '', year: 2024, isbn: '' })
+const categoryOptions = ['古典文学', '科幻小说', '当代文学', '历史传记', '经济管理']
+const rules = {
+  title: [{ required: true, message: '请输入书名', trigger: 'blur' }],
+  author: [{ required: true, message: '请输入作者', trigger: 'blur' }],
+  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  year: [
+    { required: true, message: '请输入出版年份', trigger: 'blur' },
+    { type: 'number', min: 1900, max: 2100, message: '年份应在 1900 ~ 2100', trigger: 'blur' },
+  ],
+}
+
+// 打开新增弹窗：清空表单
+const openAdd = () => {
+  editingId.value = null
+  formRef.value?.resetFields()
+  Object.assign(form, { title: '', author: '', category: '', year: 2024, isbn: '' })
+  dialogVisible.value = true
+}
+
+// 打开编辑弹窗：回填当前行数据
+const openEdit = (row) => {
+  editingId.value = row.id
+  Object.assign(form, {
+    title: row.title,
+    author: row.author,
+    category: row.category,
+    year: row.year,
+    isbn: row.isbn,
+  })
+  dialogVisible.value = true
+}
+
+// 提交：新增或编辑，成功后刷新列表
+const handleSubmit = async () => {
+  await formRef.value.validate()
+  submitting.value = true
+  try {
+    if (editingId.value) {
+      await updateBook(editingId.value, { ...form })
+      ElMessage.success('编辑成功')
+    } else {
+      await addBook({ ...form })
+      ElMessage.success('新增成功')
+    }
+    dialogVisible.value = false
+    page.value = 1
+    await loadBooks()
+  } catch (e) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// ===== 删除 =====
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除《${row.title}》吗？`, '删除提示', {
@@ -41,22 +112,17 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    bookStore.deleteBook(row.id)
+    await deleteBook(row.id)
     ElMessage.success('删除成功')
+    await loadBooks()
   } catch { /* 用户取消 */ }
 }
 
-// 归还：借出/逾期/维修中 → 恢复在架，清空借阅信息
-const handleReturn = async (row) => {
+// ===== 触发后端 500，观察响应拦截器提示 =====
+const handleBoom = async () => {
   try {
-    await ElMessageBox.confirm(`确定归还《${row.title}》吗？`, '归还确认', {
-      confirmButtonText: '归还',
-      cancelButtonText: '取消',
-      type: 'info',
-    })
-    bookStore.returnBook(row.id)
-    ElMessage.success(`已归还《${row.title}》`)
-  } catch { /* 用户取消 */ }
+    await request.get('/boom') // 命中定义好的 500 接口，由拦截器统一提示
+  } catch { /* 拦截器已提示“服务器错误” */ }
 }
 
 const statusType = (status) =>
@@ -69,11 +135,12 @@ const statusType = (status) =>
       <div class="toolbar">
         <div class="title-area">
           <span class="card-title">图书管理</span>
-          <span class="card-subtitle">共 {{ books.length }} 条记录</span>
+          <span class="card-subtitle">共 {{ total }} 条记录</span>
         </div>
-        <el-button type="primary" :icon="Plus" size="default" @click="goAdd">
-          新增图书
-        </el-button>
+        <div class="action-group">
+          <el-button type="danger" plain @click="handleBoom">测试500</el-button>
+          <el-button type="primary" :icon="Plus" @click="openAdd">新增图书</el-button>
+        </div>
       </div>
     </template>
 
@@ -82,12 +149,12 @@ const statusType = (status) =>
       <el-tab-pane
         v-for="t in statusTabs"
         :key="t"
-        :label="t === '' ? `全部（${allBooks.length}）` : t"
+        :label="t === '' ? `全部（${total}）` : t"
         :name="t"
       />
     </el-tabs>
 
-    <el-table :data="books" stripe border style="width: 100%">
+    <el-table :data="filteredBooks" stripe border style="width: 100%">
       <el-table-column prop="id" label="ID" width="70" align="center" />
       <el-table-column prop="title" label="书名" min-width="160">
         <template #default="{ row }">
@@ -113,18 +180,60 @@ const statusType = (status) =>
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="230" align="center" fixed="right">
+      <el-table-column label="操作" width="220" align="center" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" link @click="goDetail(row)">详情</el-button>
-          <template v-if="row.status !== '在架'">
-            <el-divider direction="vertical" />
-            <el-button type="success" link @click="handleReturn(row)">归还</el-button>
-          </template>
+          <el-divider direction="vertical" />
+          <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
           <el-divider direction="vertical" />
           <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 分页：page=2 时 mock 返回空数据处理 -->
+    <div class="pagination">
+      <el-pagination
+        layout="prev, pager, next, total"
+        :total="total"
+        :page-size="pageSize"
+        v-model:current-page="page"
+        @current-change="loadBooks"
+      />
+    </div>
+
+    <!-- 新增/编辑弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="editingId ? '编辑图书' : '新增图书'"
+      width="480px"
+    >
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="书名" prop="title">
+          <el-input v-model="form.title" placeholder="请输入书名" />
+        </el-form-item>
+        <el-form-item label="作者" prop="author">
+          <el-input v-model="form.author" placeholder="请输入作者" />
+        </el-form-item>
+        <el-form-item label="分类" prop="category">
+          <el-select v-model="form.category" placeholder="请选择分类" style="width: 100%">
+            <el-option v-for="c in categoryOptions" :key="c" :label="c" :value="c" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="出版年份" prop="year">
+          <el-input-number v-model="form.year" :min="1900" :max="2100" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="ISBN" prop="isbn">
+          <el-input v-model="form.isbn" placeholder="请输入 ISBN" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          <el-icon style="margin-right: 4px"><Check /></el-icon>保存
+        </el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -138,6 +247,10 @@ const statusType = (status) =>
   display: flex;
   align-items: baseline;
   gap: 12px;
+}
+.action-group {
+  display: flex;
+  gap: 8px;
 }
 .card-title {
   font-size: 17px;
@@ -159,5 +272,10 @@ const statusType = (status) =>
 }
 .status-tabs {
   margin-bottom: 4px;
+}
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { login } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -20,13 +21,20 @@ const loading = ref(false)
 const handleLogin = async () => {
   await loginFormRef.value.validate()
   loading.value = true
-  setTimeout(() => {
-    // 调用 store 的 login 方法（内部已处理 localStorage 持久化）
-    userStore.login(form.username)
+  try {
+    // 调用登录接口 → 拦截器返回 res.data = { code: 200, data: {...} }
+    const res = await login(form)
+    const { token, userInfo } = res.data
+    // 写入 Pinia（plugins 持久化会自动同步 localStorage）
+    userStore.token = token
+    userStore.userInfo = userInfo
     ElMessage.success('登录成功')
+    router.push('/books') // 使用 Vue Router 跳转（单页应用，不触发整页重载）
+  } catch (e) {
+    ElMessage.error(e?.message || '登录失败')
+  } finally {
     loading.value = false
-    router.push('/books')
-  }, 500)
+  }
 }
 </script>
 
